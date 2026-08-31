@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>すうじで グリコ！</title>
+<style>
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Yu Gothic", "Meiryo", sans-serif;
+    background: #FDF6E9;
+    color: #3A3A3A;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  /* ===== 共通ボタン ===== */
+  .btn {
+    border: none; border-radius: 20px; cursor: pointer;
+    font-family: inherit; font-weight: bold;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+    transition: transform 0.05s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
+
+  /* ===== 設定画面 ===== */
+  #scr-setup {
+    height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 20px 16px 40px;
+  }
+  .setup-title {
+    text-align: center; margin-bottom: 4px;
+    font-size: clamp(28px, 5vw, 44px); color: #E8702A;
+    letter-spacing: 2px;
+  }
+  .setup-sub {
+    text-align: center; color: #8A7B66; margin-bottom: 20px;
+    font-size: clamp(14px, 2.5vw, 18px);
+  }
+  .setup-section { max-width: 900px; margin: 0 auto 18px; }
+  .setup-label { font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #5B4A36; }
+  .count-row { display: flex; gap: 10px; }
+  .count-btn {
+    flex: 1; height: 60px; font-size: 26px;
+    background: #fff; color: #5B4A36; border: 3px solid #E5D8C3;
+  }
+  .count-btn.on { background: #E8702A; color: #fff; border-color: #E8702A; }
+
+  .pcard {
+    background: #fff; border-radius: 18px; padding: 14px 16px;
+    margin-bottom: 14px; border: 3px solid #EFE3CF;
+  }
+  .pcard-head { font-size: 17px; font-weight: bold; color: #E8702A; margin-bottom: 8px; }
+  .pcard input[type=text] {
+    width: 100%; height: 52px; font-size: 22px; font-family: inherit;
+    border: 3px solid #E5D8C3; border-radius: 12px; padding: 0 12px;
+    -webkit-user-select: text; user-select: text;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    background: #FBEAD8; color: #8a5a2b; font-size: 15px;
+    padding: 7px 14px; border-radius: 999px; box-shadow: none;
+  }
+  .opt-group { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .opt-title { font-size: 14px; color: #8A7B66; font-weight: bold; }
+  .opt-btn {
+    text-align: left; font-size: 16px; padding: 11px 14px;
+    background: #F7F1E6; color: #5B4A36; border-radius: 12px; box-shadow: none;
+    border: 2px solid transparent;
+  }
+  .opt-btn.on { background: #FFF; border-color: #E8702A; color: #E8702A; }
+  .method-row { display: flex; gap: 8px; margin-top: 6px; }
+  .method-row .opt-btn { flex: 1; text-align: center; }
+
+  #btn-start {
+    display: block; margin: 24px auto 0; width: min(90%, 420px); height: 76px;
+    font-size: 30px; background: #4CAF50; color: #fff;
+  }
+
+  /* ===== ゲーム画面 ===== */
+  #scr-game { height: 100%; display: flex; flex-direction: column; }
+  #game-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; background: #fff; border-bottom: 3px solid #EFE3CF;
+  }
+  #btn-home {
+    width: 52px; height: 52px; font-size: 24px;
+    background: #F0E9DC; color: #8A7B66; border-radius: 14px;
+  }
+  #hdr-player {
+    flex: 1; text-align: center;
+    font-size: clamp(22px, 4vw, 34px); font-weight: bold; color: #3A3A3A;
+  }
+  #hdr-player .pname { color: #E8702A; }
+  #btn-goal {
+    height: 52px; padding: 0 18px; font-size: 20px;
+    background: #3D7BD9; color: #fff; border-radius: 14px;
+  }
+  #game-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* --- 問題画面 --- */
+  #sub-question { flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 12px; overflow: hidden; }
+  #q-area {
+    flex: 1; background: #fff; border-radius: 22px; border: 4px solid #EFE3CF;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 14px; overflow: hidden; position: relative;
+  }
+  .q-caption { font-size: clamp(20px, 3.5vw, 30px); font-weight: bold; color: #5B4A36; margin-bottom: 10px; }
+  .q-expr { font-size: clamp(40px, 8vw, 76px); font-weight: bold; letter-spacing: 4px; white-space: nowrap; }
+  .q-expr-sub { font-size: clamp(36px, 6vw, 64px); font-weight: bold; color: #5B4A36; margin-top: 14px; letter-spacing: 3px; white-space: nowrap; }
+  .egroups { display: flex; align-items: center; gap: clamp(8px, 2vw, 22px); flex-wrap: nowrap; justify-content: center; }
+  .egroup {
+    background: #FDF6E9; border: 3px dashed #D9C7A8; border-radius: 16px;
+    padding: clamp(6px, 1.5vw, 14px);
+  }
+  .opsign { font-size: clamp(36px, 6vw, 64px); font-weight: bold; color: #E8702A; }
+  .erow { display: flex; justify-content: center; }
+  .emoji { font-size: clamp(30px, 6vw, 58px); line-height: 1.15; padding: 2px; position: relative; }
+  .emoji.crossed { opacity: 0.35; }
+  .emoji.crossed::after {
+    content: "✕"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #E5533C; font-size: 0.9em; font-weight: bold; opacity: 1;
+  }
+  .match-target {
+    font-size: clamp(70px, 14vw, 130px); line-height: 1.2;
+    background: #FDF6E9; border: 4px solid #D9C7A8; border-radius: 24px;
+    padding: clamp(10px, 2vw, 24px) clamp(20px, 4vw, 44px);
+  }
+
+  #ans-area { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .choice-btn {
+    height: clamp(76px, 13vh, 120px); font-size: clamp(34px, 6vw, 56px);
+    background: #fff; color: #3A3A3A; border: 4px solid #F0C48C; border-radius: 22px;
+  }
+  .judge-btn { height: clamp(90px, 15vh, 130px); font-size: clamp(26px, 4.5vw, 40px); color: #fff; border-radius: 22px; }
+  #btn-ok { background: #4CAF50; }
+  #btn-ng { background: #E5533C; }
+
+  /* --- あるく画面 --- */
+  #sub-walking { flex: 1; display: flex; flex-direction: column; padding: 12px; }
+  #walk-zone {
+    flex: 1; background: #E8F4E4; border: 4px solid #A5CE9C; border-radius: 26px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; cursor: pointer;
+  }
+  #walk-zone:active { background: #DCEED6; }
+  .walk-label { font-size: clamp(22px, 4vw, 34px); font-weight: bold; color: #4A7A3D; }
+  #walk-num {
+    font-size: clamp(110px, 26vw, 230px); font-weight: bold; color: #2F6B27; line-height: 1;
+  }
+  .walk-hint { font-size: clamp(17px, 3vw, 24px); color: #6D9A61; }
+  #walk-feet { font-size: clamp(24px, 4vw, 34px); min-height: 1.4em; letter-spacing: 4px; }
+
+  /* --- きをつけ画面 --- */
+  #sub-attention {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 16px;
+  }
+  .att-title { font-size: clamp(34px, 6vw, 56px); font-weight: bold; color: #3D7BD9; }
+  .att-sub { font-size: clamp(18px, 3vw, 26px); color: #8A7B66; }
+  #sub-attention svg { height: clamp(180px, 34vh, 300px); }
+  .next-btn {
+    width: min(80%, 380px); height: 72px; font-size: 26px;
+    background: #E8702A; color: #fff;
+  }
+
+  /* --- ざんねん画面 --- */
+  #sub-wrong {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 16px;
+  }
+  .wrong-title { font-size: clamp(36px, 6vw, 58px); font-weight: bold; color: #E5533C; }
+  #wrong-ans { font-size: clamp(24px, 4vw, 38px); font-weight: bold; color: #5B4A36; }
+
+  /* ===== オーバーレイ ===== */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(60, 45, 25, 0.55);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+    padding: 20px;
+  }
+  .panel {
+    background: #fff; border-radius: 26px; padding: 28px 24px;
+    width: min(94%, 520px); max-height: 88vh; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    text-align: center;
+  }
+  .panel h2 { font-size: clamp(24px, 4.5vw, 34px); color: #5B4A36; }
+  .panel .btn { width: 100%; height: 66px; font-size: 24px; }
+  .goal-player-btn { background: #3D7BD9; color: #fff; }
+  .cancel-btn { background: #F0E9DC; color: #8A7B66; }
+
+  #ov-correct {
+    background: rgba(255, 250, 235, 0.96);
+    flex-direction: column; gap: 10px;
+  }
+  #ov-correct .big { font-size: clamp(60px, 12vw, 120px); font-weight: bold; color: #E8702A; }
+  #ov-correct .steps-note { font-size: clamp(26px, 5vw, 44px); font-weight: bold; color: #4A7A3D; }
+
+  .goal-big { font-size: clamp(48px, 10vw, 90px); font-weight: bold; color: #E8702A; line-height: 1.3; }
+  .goal-name { font-size: clamp(30px, 6vw, 50px); font-weight: bold; color: #3D7BD9; }
+
+  @keyframes pop { 0% { transform: scale(0.5); } 70% { transform: scale(1.1); } 100% { transform: scale(1); } }
+  .pop { animation: pop 0.35s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+
+  /* ===== 横画面（iPad想定：1180×820など） ===== */
+  #ov-rotate {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: #FDF6E9; color: #5B4A36;
+    align-items: center; justify-content: center; text-align: center;
+    font-size: 26px; font-weight: bold; line-height: 1.8;
+  }
+  #ov-rotate .rot-icon { font-size: 70px; display: block; animation: rot 2s ease-in-out infinite; }
+  @keyframes rot { 0%, 20% { transform: rotate(0deg); } 60%, 100% { transform: rotate(90deg); } }
+  @media (orientation: portrait) {
+    #ov-rotate { display: flex; }
+  }
+  @media (orientation: landscape) {
+    #ans-area { grid-template-columns: repeat(4, 1fr); }
+    .choice-btn { height: clamp(68px, 16vh, 110px); }
+    .judge-btn { grid-column: span 2; height: clamp(76px, 17vh, 115px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 設定画面 ============ -->
+<div id="scr-setup">
+  <h1 class="setup-title">すうじで グリコ！</h1>
+  <p class="setup-sub">せいかいした かずだけ あるいて ゴールを めざそう</p>
+
+  <div class="setup-section">
+    <div class="setup-label">にんずう</div>
+    <div class="count-row" id="count-row"></div>
+  </div>
+
+  <div class="setup-section" id="pcards"></div>
+
+  <button class="btn" id="btn-start">ゲームを はじめる ▶</button>
+</div>
+
+<!-- ============ ゲーム画面 ============ -->
+<div id="scr-game" class="hidden">
+  <div id="game-header">
+    <button class="btn" id="btn-home">⌂</button>
+    <div id="hdr-player"></div>
+    <button class="btn" id="btn-goal">🏁 ゴール</button>
+  </div>
+  <div id="game-main">
+
+    <div id="sub-question">
+      <div id="q-area"></div>
+      <div id="ans-area"></div>
+    </div>
+
+    <div id="sub-walking" class="hidden">
+      <div id="walk-zone">
+        <div class="walk-label">あるける かず</div>
+        <div id="walk-num">0</div>
+        <div id="walk-feet"></div>
+        <div class="walk-hint">1ぽ あるいたら せんせいが タップ</div>
+      </div>
+    </div>
+
+    <div id="sub-attention" class="hidden">
+      <div class="att-title">きをつけ！</div>
+      <svg viewBox="0 0 200 330" aria-label="気をつけの姿勢で立つ子どものイラスト">
+        <circle cx="100" cy="52" r="36" fill="#FFDDBB" stroke="#C9995F" stroke-width="3"/>
+        <path d="M66 40 Q100 6 134 40 L134 32 Q100 0 66 32 Z" fill="#6B4A2B"/>
+        <circle cx="87" cy="50" r="4.5" fill="#3A3A3A"/>
+        <circle cx="113" cy="50" r="4.5" fill="#3A3A3A"/>
+        <path d="M86 66 Q100 76 114 66" stroke="#3A3A3A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <rect x="68" y="92" width="64" height="98" rx="16" fill="#3D7BD9" stroke="#2A5AA8" stroke-width="3"/>
+        <rect x="52" y="96" width="15" height="88" rx="7" fill="#3D7BD9" stroke="#2A5AA8" stroke-width="3"/>
+        <rect x="133" y="96" width="15" height="88" rx="7" fill="#3D7BD9" stroke="#2A5AA8" stroke-width="3"/>
+        <circle cx="59.5" cy="192" r="8" fill="#FFDDBB" stroke="#C9995F" stroke-width="2.5"/>
+        <circle cx="140.5" cy="192" r="8" fill="#FFDDBB" stroke="#C9995F" stroke-width="2.5"/>
+        <rect x="76" y="190" width="21" height="90" rx="9" fill="#5B4A36" stroke="#463829" stroke-width="3"/>
+        <rect x="103" y="190" width="21" height="90" rx="9" fill="#5B4A36" stroke="#463829" stroke-width="3"/>
+        <ellipse cx="84" cy="292" rx="17" ry="10" fill="#E5533C" stroke="#B23A2B" stroke-width="3"/>
+        <ellipse cx="116" cy="292" rx="17" ry="10" fill="#E5533C" stroke="#B23A2B" stroke-width="3"/>
+      </svg>
+      <div class="att-sub">せすじを のばして じゅんばんを まとう</div>
+      <button class="btn next-btn" id="btn-att-next">つぎのひとへ ▶</button>
+    </div>
+
+    <div id="sub-wrong" class="hidden">
+      <div class="wrong-title">ざんねん…</div>
+      <div id="wrong-ans"></div>
+      <button class="btn next-btn" id="btn-wrong-next">つぎのひとへ ▶</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ オーバーレイ ============ -->
+<div id="ov-correct" class="overlay hidden">
+  <div class="big pop">🎉 せいかい！ 🎉</div>
+  <div class="steps-note" id="correct-steps"></div>
+</div>
+
+<div id="ov-goalselect" class="overlay hidden">
+  <div class="panel">
+    <h2>だれが ゴールしたかな？</h2>
+    <div id="goal-list" style="width:100%; display:flex; flex-direction:column; gap:10px;"></div>
+    <button class="btn cancel-btn" id="btn-goal-cancel">もどる</button>
+  </div>
+</div>
+
+<div id="ov-goalshow" class="overlay hidden">
+  <div class="panel">
+    <div class="goal-big pop">🎉 ゴール！ 🎉</div>
+    <div class="goal-name" id="goal-name"></div>
+    <button class="btn next-btn" id="btn-goal-close">つぎへ ▶</button>
+  </div>
+</div>
+
+<div id="ov-allgoal" class="overlay hidden">
+  <div class="panel">
+    <div class="goal-big pop">🏆 みんな ゴール！ 🏆</div>
+    <div class="goal-name">よく がんばりました！</div>
+    <button class="btn next-btn" id="btn-again">おなじ せっていで もういちど</button>
+    <button class="btn cancel-btn" id="btn-to-setup">せっていに もどる</button>
+  </div>
+</div>
+
+<div id="ov-confirm" class="overlay hidden">
+  <div class="panel">
+    <h2>せっていがめんに もどりますか？</h2>
+    <button class="btn goal-player-btn" id="btn-conf-yes">はい、もどる</button>
+    <button class="btn cancel-btn" id="btn-conf-no">いいえ、つづける</button>
+  </div>
+</div>
+
+<div id="ov-rotate">
+  <div>
+    <span class="rot-icon">📱</span>
+    タブレットを よこむきに してね<br>
+    <span style="font-size:17px; color:#8A7B66;">このゲームは 横画面用です（画面の回転ロックを解除してください）</span>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= 定数 ================= */
+const LEVELS = [
+  { id: "calc20",  label: "たしざん・ひきざん（こたえ20まで）", note: "せいかいで 5ほ" },
+  { id: "calc10",  label: "たしざん・ひきざん（10まで・イラスト）", note: "こたえの かずだけ あるく" },
+  { id: "count10", label: "かずかぞえ（10まで）", note: "こたえの かずだけ あるく" },
+  { id: "count5",  label: "かずかぞえ（5まで）", note: "こたえの かずだけ あるく" },
+  { id: "match",   label: "えあわせ", note: "せいかいで 5ほ" },
+];
+const METHODS = [
+  { id: "oral",   label: "こうとう（せんせいが ○✕）" },
+  { id: "choice", label: "せんたくし（4たく）" },
+];
+const EMOJI = ["🍎","🍊","🍌","🍇","🍓","🍉","🚗","🚌","🚲","🐶","🐱","🐰","⭐","🌸","⚽","🐟"];
+
+/* ================= 状態 ================= */
+let setup = { count: 2, players: [] }; // players: {name, level, method}
+let players = [];   // ゲーム中: {name, level, method, goaled}
+let turn = 0;
+let current = null; // {answer, steps, oralHint}
+let stepsLeft = 0;
+
+/* ================= ユーティリティ ================= */
+const $ = (id) => document.getElementById(id);
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function numChoices(ans, min, max) {
+  const cands = [];
+  for (let v = min; v <= max; v++) if (v !== ans) cands.push(v);
+  cands.sort((x, y) => (Math.abs(x - ans) - Math.abs(y - ans)) || (Math.random() - 0.5));
+  const opts = [ans];
+  for (const v of cands) { if (opts.length >= 4) break; opts.push(v); }
+  return shuffle(opts);
+}
+
+/* ================= 保存（名前・設定） ================= */
+function loadJSON(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; }
+  catch (e) { return fallback; }
+}
+function saveJSON(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+}
+function savedNames() { return loadJSON("guriko_names", []); }
+function addSavedNames(names) {
+  let list = savedNames();
+  for (const n of names) {
+    if (!n) continue;
+    list = list.filter((x) => x !== n);
+    list.unshift(n);
+  }
+  saveJSON("guriko_names", list.slice(0, 20));
+}
+
+/* ================= 効果音（Web Audio） ================= */
+let ac = null;
+function ensureAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!ac) ac = new AC();
+  if (ac.state === "suspended") ac.resume();
+}
+function tone(freq, dur, type, vol, delay) {
+  if (!ac) return;
+  const t = ac.currentTime + (delay || 0);
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.type = type || "sine";
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(vol || 0.25, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+const sndTap     = () => tone(750, 0.07, "square", 0.10);
+const sndCorrect = () => { tone(660, 0.15, "sine", 0.3); tone(990, 0.4, "sine", 0.3, 0.16); };
+const sndWrong   = () => { tone(220, 0.35, "sawtooth", 0.2); tone(180, 0.35, "sawtooth", 0.2, 0.05); };
+const sndStep    = (i) => tone(440 + i * 40, 0.1, "triangle", 0.3);
+const sndChime   = () => { tone(880, 0.2, "sine", 0.25); tone(1174, 0.45, "sine", 0.25, 0.2); };
+const sndGoal    = () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.3, "sine", 0.3, i * 0.16)); };
+
+document.addEventListener("pointerdown", (e) => {
+  ensureAudio();
+  if (e.target.closest(".btn")) sndTap();
+});
+
+/* ================= 画面切替 ================= */
+function showScreen(setupVisible) {
+  $("scr-setup").classList.toggle("hidden", !setupVisible);
+  $("scr-game").classList.toggle("hidden", setupVisible);
+}
+function showSub(id) {
+  ["sub-question", "sub-walking", "sub-attention", "sub-wrong"].forEach((s) =>
+    $(s).classList.toggle("hidden", s !== id)
+  );
+}
+function showOverlay(id, on) { $(id).classList.toggle("hidden", !on); }
+
+/* ================= 設定画面 ================= */
+function initSetup() {
+  const saved = loadJSON("guriko_config", null);
+  if (saved && saved.count >= 1 && saved.count <= 5) setup = saved;
+  renderCountRow();
+  renderPlayerCards();
+}
+function renderCountRow() {
+  const row = $("count-row");
+  row.innerHTML = "";
+  for (let n = 1; n <= 5; n++) {
+    const b = document.createElement("button");
+    b.className = "btn count-btn" + (setup.count === n ? " on" : "");
+    b.textContent = n + "にん";
+    b.onclick = () => { setup.count = n; renderCountRow(); renderPlayerCards(); };
+    row.appendChild(b);
+  }
+}
+function playerDefault(i) {
+  return { name: "", level: "count5", method: "choice" };
+}
+function renderPlayerCards() {
+  while (setup.players.length < setup.count) setup.players.push(playerDefault(setup.players.length));
+  const wrap = $("pcards");
+  wrap.innerHTML = "";
+  const names = savedNames();
+  for (let i = 0; i < setup.count; i++) {
+    const p = setup.players[i];
+    const card = document.createElement("div");
+    card.className = "pcard";
+
+    const head = document.createElement("div");
+    head.className = "pcard-head";
+    head.textContent = "👤 プレイヤー " + (i + 1);
+    card.appendChild(head);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "なまえを いれてね";
+    input.value = p.name;
+    input.oninput = () => { p.name = input.value.trim(); };
+    card.appendChild(input);
+
+    if (names.length) {
+      const chips = document.createElement("div");
+      chips.className = "chips";
+      names.forEach((n) => {
+        const c = document.createElement("button");
+        c.className = "btn chip";
+        c.textContent = n;
+        c.onclick = () => { p.name = n; input.value = n; };
+        chips.appendChild(c);
+      });
+      card.appendChild(chips);
+    }
+
+    const lg = document.createElement("div");
+    lg.className = "opt-group";
+    lg.innerHTML = '<div class="opt-title">もんだいの なんいど</div>';
+    LEVELS.forEach((lv) => {
+      const b = document.createElement("button");
+      b.className = "opt-btn" + (p.level === lv.id ? " on" : "");
+      b.textContent = lv.label + "｜" + lv.note;
+      b.onclick = () => { p.level = lv.id; renderPlayerCards(); };
+      lg.appendChild(b);
+    });
+    card.appendChild(lg);
+
+    const mg = document.createElement("div");
+    mg.className = "opt-group";
+    mg.innerHTML = '<div class="opt-title">こたえかた</div>';
+    const mr = document.createElement("div");
+    mr.className = "method-row";
+    METHODS.forEach((m) => {
+      const b = document.createElement("button");
+      b.className = "opt-btn" + (p.method === m.id ? " on" : "");
+      b.textContent = m.label;
+      b.onclick = () => { p.method = m.id; renderPlayerCards(); };
+      mr.appendChild(b);
+    });
+    mg.appendChild(mr);
+    card.appendChild(mg);
+
+    wrap.appendChild(card);
+  }
+}
+
+$("btn-start").onclick = () => {
+  players = [];
+  for (let i = 0; i < setup.count; i++) {
+    const p = setup.players[i];
+    players.push({
+      name: p.name || "プレイヤー" + (i + 1),
+      level: p.level, method: p.method, goaled: false,
+    });
+  }
+  addSavedNames(players.map((p) => p.name).filter((n) => !n.startsWith("プレイヤー")));
+  saveJSON("guriko_config", { count: setup.count, players: setup.players.slice(0, setup.count) });
+  turn = 0;
+  showScreen(false);
+  newQuestion();
+};
+
+/* ================= 問題生成 ================= */
+function pickEmoji(exclude) {
+  let e;
+  do { e = EMOJI[rand(0, EMOJI.length - 1)]; } while (exclude && exclude.includes(e));
+  return e;
+}
+function emojiRows(emoji, n, crossedFrom) {
+  let html = "";
+  for (let i = 0; i < n; i += 5) {
+    html += '<div class="erow">';
+    for (let j = i; j < Math.min(i + 5, n); j++) {
+      const c = crossedFrom != null && j >= crossedFrom;
+      html += '<span class="emoji' + (c ? " crossed" : "") + '">' + emoji + "</span>";
+    }
+    html += "</div>";
+  }
+  return html;
+}
+function genQuestion(level) {
+  if (level === "calc20") {
+    if (Math.random() < 0.5) {
+      const ans = rand(2, 20), a = rand(1, ans - 1);
+      return { html: qCalcPlain(a, ans - a, "＋"), answer: ans, steps: 5, min: 1, max: 20 };
+    } else {
+      const a = rand(2, 20), b = rand(1, a - 1);
+      return { html: qCalcPlain(a, b, "−"), answer: a - b, steps: 5, min: 1, max: 20 };
+    }
+  }
+  if (level === "calc10") {
+    if (Math.random() < 0.5) {
+      const ans = rand(2, 10), a = rand(1, ans - 1), b = ans - a;
+      const eA = pickEmoji(), eB = pickEmoji([eA]);
+      const html =
+        '<div class="q-caption">ぜんぶで いくつかな？</div>' +
+        '<div class="egroups"><div class="egroup">' + emojiRows(eA, a) + "</div>" +
+        '<div class="opsign">＋</div>' +
+        '<div class="egroup">' + emojiRows(eB, b) + "</div></div>" +
+        '<div class="q-expr-sub">' + a + " ＋ " + b + " ＝ ？</div>";
+      return { html, answer: ans, steps: ans, min: 1, max: 10 };
+    } else {
+      const a = rand(2, 10), b = rand(1, a - 1), ans = a - b;
+      const e = pickEmoji();
+      const html =
+        '<div class="q-caption">✕を けしたら のこりは いくつかな？</div>' +
+        '<div class="egroups"><div class="egroup">' + emojiRows(e, a, ans) + "</div></div>" +
+        '<div class="q-expr-sub">' + a + " − " + b + " ＝ ？</div>";
+      return { html, answer: ans, steps: ans, min: 1, max: 10 };
+    }
+  }
+  if (level === "count10" || level === "count5") {
+    const max = level === "count10" ? 10 : 5;
+    const n = rand(1, max);
+    const e = pickEmoji();
+    const html =
+      '<div class="q-caption">いくつ あるかな？</div>' +
+      '<div class="egroups"><div class="egroup">' + emojiRows(e, n) + "</div></div>";
+    return { html, answer: n, steps: n, min: 1, max: max };
+  }
+  // match（えあわせ）
+  const target = pickEmoji();
+  const html =
+    '<div class="q-caption">おなじ ものは どれかな？</div>' +
+    '<div class="match-target">' + target + "</div>";
+  const others = [];
+  while (others.length < 3) {
+    const e = pickEmoji([target].concat(others));
+    others.push(e);
+  }
+  return { html, answer: target, steps: 5, choices: shuffle([target].concat(others)), isMatch: true };
+}
+function qCalcPlain(a, b, op) {
+  return '<div class="q-expr">' + a + " " + op + " " + b + " ＝ ？</div>";
+}
+
+/* ================= 出題 ================= */
+function activePlayer() { return players[turn]; }
+function newQuestion() {
+  const p = activePlayer();
+  $("hdr-player").innerHTML = '<span class="pname">' + escapeHTML(p.name) + "</span>さんの ばん";
+  current = genQuestion(p.level);
+  $("q-area").innerHTML = current.html;
+
+  const ans = $("ans-area");
+  ans.innerHTML = "";
+  if (p.method === "oral") {
+    const ok = document.createElement("button");
+    ok.id = "btn-ok"; ok.className = "btn judge-btn"; ok.textContent = "○ せいかい";
+    ok.onclick = () => judge(true);
+    const ng = document.createElement("button");
+    ng.id = "btn-ng"; ng.className = "btn judge-btn"; ng.textContent = "✕ ざんねん";
+    ng.onclick = () => judge(false);
+    ans.appendChild(ok); ans.appendChild(ng);
+  } else {
+    const choices = current.isMatch
+      ? current.choices
+      : numChoices(current.answer, current.min, current.max);
+    choices.forEach((c) => {
+      const b = document.createElement("button");
+      b.className = "btn choice-btn";
+      b.textContent = c;
+      b.onclick = () => judge(c === current.answer);
+      ans.appendChild(b);
+    });
+  }
+  showSub("sub-question");
+}
+function escapeHTML(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ================= 正誤 → あるく ================= */
+function judge(correct) {
+  if (correct) {
+    sndCorrect();
+    $("correct-steps").textContent = current.steps + "ほ あるけるよ！";
+    showOverlay("ov-correct", true);
+    setTimeout(() => {
+      showOverlay("ov-correct", false);
+      startWalking();
+    }, 1400);
+  } else {
+    sndWrong();
+    $("wrong-ans").textContent = current.isMatch
+      ? "こたえは 「" + current.answer + "」 でした"
+      : "こたえは 「" + current.answer + "」 でした";
+    showSub("sub-wrong");
+  }
+}
+function startWalking() {
+  stepsLeft = current.steps;
+  $("walk-num").textContent = stepsLeft;
+  $("walk-feet").textContent = "";
+  showSub("sub-walking");
+}
+$("walk-zone").onclick = () => {
+  if (stepsLeft <= 0) return;
+  stepsLeft--;
+  sndStep(current.steps - stepsLeft);
+  $("walk-num").textContent = stepsLeft;
+  $("walk-feet").textContent += "👣";
+  if (stepsLeft === 0) {
+    setTimeout(() => { sndChime(); showSub("sub-attention"); }, 500);
+  }
+};
+$("btn-att-next").onclick = () => { nextTurn(); newQuestion(); };
+$("btn-wrong-next").onclick = () => { nextTurn(); newQuestion(); };
+
+function nextTurn() {
+  for (let k = 1; k <= players.length; k++) {
+    const i = (turn + k) % players.length;
+    if (!players[i].goaled) { turn = i; return; }
+  }
+}
+
+/* ================= ゴール ================= */
+$("btn-goal").onclick = () => {
+  const list = $("goal-list");
+  list.innerHTML = "";
+  players.forEach((p, i) => {
+    if (p.goaled) return;
+    const b = document.createElement("button");
+    b.className = "btn goal-player-btn";
+    b.textContent = p.name;
+    b.onclick = () => {
+      p.goaled = true;
+      showOverlay("ov-goalselect", false);
+      sndGoal();
+      $("goal-name").textContent = p.name + " さん、おめでとう！";
+      showOverlay("ov-goalshow", true);
+    };
+    list.appendChild(b);
+  });
+  showOverlay("ov-goalselect", true);
+};
+$("btn-goal-cancel").onclick = () => showOverlay("ov-goalselect", false);
+$("btn-goal-close").onclick = () => {
+  showOverlay("ov-goalshow", false);
+  if (players.every((p) => p.goaled)) {
+    sndGoal();
+    showOverlay("ov-allgoal", true);
+  } else {
+    if (activePlayer().goaled) nextTurn();
+    newQuestion();
+  }
+};
+$("btn-again").onclick = () => {
+  showOverlay("ov-allgoal", false);
+  players.forEach((p) => (p.goaled = false));
+  turn = 0;
+  newQuestion();
+};
+$("btn-to-setup").onclick = () => {
+  showOverlay("ov-allgoal", false);
+  initSetup();
+  showScreen(true);
+};
+
+/* ================= 設定に戻る確認 ================= */
+$("btn-home").onclick = () => showOverlay("ov-confirm", true);
+$("btn-conf-no").onclick = () => showOverlay("ov-confirm", false);
+$("btn-conf-yes").onclick = () => {
+  showOverlay("ov-confirm", false);
+  initSetup();
+  showScreen(true);
+};
+
+/* ================= 起動 ================= */
+initSetup();
+showScreen(true);
+</script>
+</body>
+</html>
